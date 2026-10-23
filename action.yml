@@ -1,0 +1,73 @@
+name: Publish to ashare
+description: Publish an HTML, Markdown or ZIP report from CI to ashare.net and post the link in the pull request
+author: Ivan Boitsov
+branding:
+  icon: share-2
+  color: blue
+
+inputs:
+  file:
+    description: Path to the report. The extension picks the format, .html/.htm, .md/.markdown or .zip (a site with index.html)
+    required: true
+  title:
+    description: Document title. Empty takes <title> from HTML or the first heading from Markdown
+    required: false
+    default: ''
+  api-key:
+    description: ashare API key, from a secret. Create one at https://ashare.net/me/api
+    required: true
+  base-url:
+    description: ashare server
+    required: false
+    default: https://ashare.net
+  visibility:
+    # ashare makes new documents private (only you and people you share with). A CI report is for the reviewers of the PR,
+    # so this action publishes public by default. Set private to keep it to yourself, company to open it to your organization
+    # on ashare, or '' to leave it to your account default on a new document and untouched on an update.
+    description: public (anyone with the link), private (only you and people you share with) or company (that and everyone in your ashare organization). Default public, unlike ashare itself
+    required: false
+    default: public
+  expires-in:
+    description: Link lifetime from now, like 30m, 24h or 7d; every run extends it. Empty keeps the account default, or the current expiry on an update
+    required: false
+    default: ''
+  artifact-id:
+    description: Update this document instead of a new one. Empty takes the id from this action's earlier comment in the PR
+    required: false
+    default: ''
+  comment:
+    description: Post the link as a comment in the pull request, or update this action's earlier comment for the same file
+    required: false
+    default: 'true'
+  github-token:
+    description: Token for the comment, needs pull-requests write
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  url:
+    description: Link to the document
+    value: ${{ steps.publish.outputs.url }}
+  id:
+    description: Document id, for artifact-id in later runs
+    value: ${{ steps.publish.outputs.id }}
+  version:
+    description: Version number just published
+    value: ${{ steps.publish.outputs.version }}
+
+runs:
+  using: composite
+  steps:
+    - id: publish
+      shell: bash
+      run: bash "$GITHUB_ACTION_PATH/publish.sh"
+      env:
+        FILE: ${{ inputs.file }}
+        TITLE: ${{ inputs.title }}
+        API_KEY: ${{ inputs.api-key }}
+        BASE_URL: ${{ inputs.base-url }}
+        VISIBILITY: ${{ inputs.visibility }}
+        EXPIRES_IN: ${{ inputs.expires-in }}
+        ARTIFACT_ID: ${{ inputs.artifact-id }}
+        COMMENT: ${{ inputs.comment }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
